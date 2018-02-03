@@ -27,12 +27,8 @@ fullheight = 270/resolution
 
 plt.rcdefaults()
 plt.rcParams.update({
-    'font.family': 'sans-serif',
-    'font.sans-serif': ['Lato'],
-    'mathtext.fontset': 'custom',
-    'mathtext.default': 'it',
-    'mathtext.rm': 'sans',
-    'mathtext.cal': 'sans',
+    'font.family': 'serif',
+    'font.serif': ['CMU Serif'],
     'font.size': fontnormal,
     'legend.fontsize': fontnormal,
     'axes.labelsize': fontnormal,
@@ -156,12 +152,14 @@ def run_cmd(*args, stdout=subprocess.PIPE):
     else:
         return proc
 
+
 def trento_args(size=100):
     """
     Samples trento parameters from the Bayesian posterior
 
     """
-    logging.info('loading MCMC chain')
+    logging.info('loading mcmc chain')
+
     with h5py.File('chain.hdf' , 'r') as f:
         dset = f['chain']
         nparam = dset.shape[-1]
@@ -185,9 +183,6 @@ def uncertainties(fname='attrs.dat', nbin=10):
     plot_attrs = ['Npart', 'Npart']
 
     for args in trento_args(size=10):
-        logging.info(
-            ' '.join(['{}: {:.2f}'.format(k, v) for k, v in args.items()])
-        )
 
         if os.path.exists(fname):
             os.remove(fname)
@@ -244,8 +239,12 @@ def uncertainties(fname='attrs.dat', nbin=10):
 
             ax.set_ylabel(ylabel)
 
+    set_tight()
+
 
 def main():
+    logging.basicConfig(level=logging.INFO)
+
     parser = argparse.ArgumentParser()
     parser.add_argument('plots', nargs='*')
     args = parser.parse_args()
