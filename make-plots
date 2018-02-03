@@ -161,6 +161,7 @@ def trento_args(size=100):
     Samples trento parameters from the Bayesian posterior
 
     """
+    logging.info('loading MCMC chain')
     with h5py.File('chain.hdf' , 'r') as f:
         dset = f['chain']
         nparam = dset.shape[-1]
@@ -172,7 +173,7 @@ def trento_args(size=100):
 
 
 @plot
-def uncertainties(fname='attrs.dat', nbin=20):
+def uncertainties(fname='attrs.dat', nbin=10):
     """
     Calculate <Ncoll>(Centrality) for each set of trento arguments
 
@@ -183,8 +184,10 @@ def uncertainties(fname='attrs.dat', nbin=20):
     post_samples = defaultdict(list)
     plot_attrs = ['Npart', 'Npart']
 
-    for args in trento_args(size=100):
-        print(args)
+    for args in trento_args(size=10):
+        logging.info(
+            ' '.join(['{}: {:.2f}'.format(k, v) for k, v in args.items()])
+        )
 
         if os.path.exists(fname):
             os.remove(fname)
@@ -192,7 +195,7 @@ def uncertainties(fname='attrs.dat', nbin=20):
         with open(fname, 'w') as f:
             run_cmd(
                 'trento', 'Pb Pb',
-                '--number-events {}'.format(10**3),
+                '--number-events {}'.format(10**2),
                 '--reduced-thickness {}'.format(args['p']),
                 '--fluctuation {}'.format(args['k']),
                 '--nucleon-width {}'.format(args['w']),
