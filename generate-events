@@ -81,7 +81,11 @@ def trento(args):
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    multiprocessing.Pool(4).map(trento, enumerate(trento_args(size=10**3)))
+
+    ncpu = multiprocessing.cpu_count()
+    multiprocessing.Pool(ncpu).map(
+            trento, enumerate(trento_args(size=10**3))
+            )
 
 
 if __name__ == "__main__":
