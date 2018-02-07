@@ -126,45 +126,67 @@ def auto_ticks(ax, axis='both', minor=False, **kwargs):
 
 
 @plot
-def uncertainties(nbin=20):
+def uncertainties(nbin=50):
     """
     Calculate <Ncoll>(Centrality) for each set of trento arguments
 
     """
-    figsize=(textwidth, aspect*textwidth)
-    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=figsize, sharex=True)
+    fig, axes = plt.subplots(
+        nrows=2, ncols=2,
+        figsize=(textwidth, aspect*textwidth),
+        sharex=True
+    )
 
+    plot_attrs = [('Npart', 2), ('Ncoll', 3)]
+    blue, red = [plt.cm.Blues(.6), plt.cm.Reds(.6)]
+
+    # alice glauber model
+    alice_glauber = {}
+    for attr, _ in plot_attrs:
+        fname = 'alice/{}.dat'.format(attr)
+        x, y, yerr = np.loadtxt(fname, usecols=(0, 3, 4)).T
+        alice_glauber[attr] = dict(x=x, y=y, yerr=yerr)
+
+    # read trento attributes
     post_samples = defaultdict(list)
-    plot_attrs = [('Npart', 2), ('Impact', 1)]
-
     for fname in glob.glob('cache/*.dat'):
         events = np.loadtxt(fname)
-        sorted_events = events[events[:, 3].argsort()][::-1]
+        sorted_events = events[events[:, 4].argsort()][::-1]
 
         for attr, index in plot_attrs:
             post_samples[attr].append(
                     sorted_events[:, index].reshape(nbin, -1).mean(axis=1)
             )
 
+    # plot trento npart and ncoll
     for (attr, index), col in zip(plot_attrs, axes.T):
-        samples = np.array(post_samples[attr])
         ylabels = [attr, r'{}/$\langle$ {} $\rangle$'.format(attr, attr)]
+        samples = np.array(post_samples[attr])
+
+        alice_glb = alice_glauber[attr]
+
+        trento = dict(
+            x=np.linspace(0, 100, nbin),
+            y=samples.mean(axis=0),
+            yerr=samples.std(axis=0),
+        )
 
         for ax, ylabel in zip(col, ylabels):
-            x = np.linspace(0, 100, nbin) 
-            y = samples.mean(axis=0)
-            dy = samples.std(axis=0)
 
-            if ax.is_first_row():
-                ax.plot(x, y, color=plt.cm.Blues(.6), zorder=1)
-                ax.fill_between(x, y - dy, y + dy,
-                    color=plt.cm.Blues(.2), lw=0, zorder=0, label='95% CI')
-            else:
-                ax.plot(x, np.ones_like(x), color=plt.cm.Blues(.6), zorder=1)
-                ax.fill_between(x, (y - dy)/y, (y + dy)/y,
-                    color=plt.cm.Blues(.2), lw=0, zorder=0, label='95% CI')
+            for model, color in [(trento, blue), (alice_glb, red)]:
+                x, y, dy = [model[k] for k in ('x', 'y', 'yerr')] 
 
-                ax.set_xlabel('Centrality')
+                if ax.is_first_row():
+                    ax.plot(x, y, color=color, zorder=1)
+                    ax.fill_between(x, y - dy, y + dy,
+                        color=color, alpha=.2, lw=0, zorder=0, label='95% CI')
+                else:
+                    y0 = np.interp(x, trento['x'], trento['y'])
+                    ax.plot(x, y/y0, color=color, zorder=1)
+                    ax.fill_between(x, (y - dy)/y0, (y + dy)/y0,
+                        color=color, alpha=.2, lw=0, zorder=0, label='95% CI')
+
+                    ax.set_xlabel('Centrality')
 
             ax.set_ylabel(ylabel)
 

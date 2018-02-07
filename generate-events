@@ -75,6 +75,7 @@ def trento(args):
             '--cross-section {}'.format(6.4),
             '--grid-max {}'.format(10),
             '--grid-step {}'.format(args_dict['w']),
+            '--ncoll',
             stdout=f,
             )
 
