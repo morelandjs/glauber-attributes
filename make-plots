@@ -85,8 +85,8 @@ def plot(f):
         if not fig.get_tight_layout():
             set_tight(fig)
 
-        plotfile = '{}.pdf'.format(f.__name__)
-        fig.savefig(str(plotfile))
+        plotfile = '{}.png'.format(f.__name__)
+        fig.savefig(str(plotfile), dpi=400)
         logging.info('wrote %s', plotfile)
         plt.close(fig)
 
@@ -171,15 +171,20 @@ def uncertainties(nbin=50):
             yerr=samples.std(axis=0),
         )
 
+        handles = []
+
         for ax, ylabel in zip(col, ylabels):
 
             for model, color in [(trento, blue), (alice_glb, red)]:
+
                 x, y, dy = [model[k] for k in ('x', 'y', 'yerr')] 
 
                 if ax.is_first_row():
-                    ax.plot(x, y, color=color, zorder=1)
-                    ax.fill_between(x, y - dy, y + dy,
-                        color=color, alpha=.2, lw=0, zorder=0, label='95% CI')
+                    line, = ax.plot(x, y, color=color, zorder=1)
+                    band = ax.fill_between(x, y - dy, y + dy,
+                            color=color, alpha=.2, lw=0, zorder=0, label='95% CI')
+                    handles.append((line, band))
+
                 else:
                     y0 = np.interp(x, trento['x'], trento['y'])
                     ax.plot(x, y/y0, color=color, zorder=1)
@@ -190,7 +195,9 @@ def uncertainties(nbin=50):
 
             ax.set_ylabel(ylabel)
 
-    set_tight()
+    ax_top_right = axes[0][1]
+    ax_top_right.legend(handles, ['Trento', 'ALICE GLb.'])
+    set_tight(pad=.5)
 
 
 def main():

@@ -1,3 +1,4 @@
-*.dat
+cache
 *.hdf
 *.pdf
+*.png
