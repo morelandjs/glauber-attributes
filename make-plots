@@ -4,68 +4,64 @@ import argparse
 from collections import defaultdict
 import glob
 import logging
+from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib import lines
-from matplotlib import patches
 from matplotlib import ticker
 import numpy as np
+from scipy.optimize import brentq
+from scipy.special import expi
 
 
-fontsmall, fontnormal, fontlarge = 5, 6, 7
-offblack = '#262626'
 aspect = 1/1.618
 resolution = 72.27
-textwidth = 307.28987/resolution
-textheight = 261.39864/resolution
-fullwidth = 350/resolution
-fullheight = 270/resolution
+columnwidth = 246/resolution
+textwidth = 510/resolution
+textiny, texsmall, texnormal = 8.0, 9.25, 10.0
+offblack = '#262626'
 
 plt.rcdefaults()
 plt.rcParams.update({
     'font.family': 'serif',
     'font.serif': ['CMU Serif'],
-    'font.size': fontnormal,
-    'legend.fontsize': fontnormal,
-    'axes.labelsize': fontnormal,
-    'axes.titlesize': fontlarge,
-    'xtick.labelsize': fontsmall,
-    'ytick.labelsize': fontsmall,
+    'font.size': texsmall,
+    'legend.fontsize': texsmall,
+    'axes.labelsize': texsmall,
+    'axes.titlesize': texsmall,
+    'xtick.labelsize': textiny,
+    'ytick.labelsize': textiny,
     'font.weight': 400,
     'axes.labelweight': 400,
     'axes.titleweight': 400,
-    'lines.linewidth': .5,
+    'lines.linewidth': .9,
     'lines.markersize': 3,
-    'lines.markeredgewidth': 0,
-    'patch.linewidth': .5,
-    'axes.linewidth': .4,
-    'xtick.major.width': .4,
-    'ytick.major.width': .4,
-    'xtick.minor.width': .4,
-    'ytick.minor.width': .4,
-    'xtick.major.size': 1.2,
-    'ytick.major.size': 1.2,
-    'xtick.minor.size': .8,
-    'ytick.minor.size': .8,
-    'xtick.major.pad': 1.5,
-    'ytick.major.pad': 1.5,
-    'axes.formatter.limits': (-5, 5),
-    'axes.spines.top': False,
-    'axes.spines.right': False,
-    'axes.labelpad': 3,
-    'text.color': offblack,
-    'axes.edgecolor': offblack,
-    'axes.labelcolor': offblack,
-    'xtick.color': offblack,
-    'ytick.color': offblack,
+    'lines.markeredgewidth': .1,
+    'patch.linewidth': .9,
+    'axes.linewidth': .5,
+    'xtick.major.width': .5,
+    'ytick.major.width': .5,
+    'xtick.minor.width': .5,
+    'ytick.minor.width': .5,
+    'xtick.major.size': 2,
+    'ytick.major.size': 2,
+    'xtick.minor.size': 1.3,
+    'ytick.minor.size': 1.3,
+    'xtick.major.pad': 1.8,
+    'ytick.major.pad': 1.8,
+    'text.color': 'black',
+    'axes.edgecolor': 'black',
+    'axes.labelcolor': 'black',
+    'xtick.color': 'black',
+    'ytick.color': 'black',
     'legend.numpoints': 1,
     'legend.scatterpoints': 1,
     'legend.frameon': False,
-    'image.cmap': 'Blues',
     'image.interpolation': 'none',
-    'pdf.fonttype': 42
+    'pdf.fonttype': 42,
 })
 
+plotdir = Path('plots')
+plotdir.mkdir(exist_ok=True)
 
 plot_functions = {}
 
@@ -83,10 +79,10 @@ def plot(f):
         fig = plt.gcf()
 
         if not fig.get_tight_layout():
-            set_tight(fig)
+            finish(fig)
 
-        plotfile = '{}.png'.format(f.__name__)
-        fig.savefig(str(plotfile), dpi=400)
+        plotfile = plotdir / '{}.pdf'.format(f.__name__)
+        fig.savefig(str(plotfile))
         logging.info('wrote %s', plotfile)
         plt.close(fig)
 
@@ -95,37 +91,58 @@ def plot(f):
     return wrapper
 
 
-def set_tight(fig=None, **kwargs):
-    """
-    Set tight_layout with a better default pad.
+def finish(despine=True, remove_ticks=False, pad=0.1, h_pad=None, w_pad=None,
+           rect=[0, 0, 1, 1]):
+    fig = plt.gcf()
 
-    """
-    if fig is None:
-        fig = plt.gcf()
+    for ax in fig.axes:
+        if despine:
+            for spine in 'top', 'right':
+                ax.spines[spine].set_visible(False)
 
-    kwargs.setdefault('pad', .1)
-    fig.set_tight_layout(kwargs)
+        if remove_ticks:
+            for ax_name in 'xaxis', 'yaxis':
+                getattr(ax, ax_name).set_ticks_position('none')
+        else:
+            ax.xaxis.set_ticks_position('bottom')
+            ax.yaxis.set_ticks_position('left')
 
-
-def auto_ticks(ax, axis='both', minor=False, **kwargs):
-    """
-    Convenient interface to matplotlib.ticker locators.
-
-    """
-    axis_list = []
-
-    if axis in {'x', 'both'}:
-        axis_list.append(ax.xaxis)
-    if axis in {'y', 'both'}:
-        axis_list.append(ax.yaxis)
-
-    for axis in axis_list:
-        axis.get_major_locator().set_params(**kwargs)
-        if minor:
-            axis.set_minor_locator(ticker.AutoMinorLocator(minor))
+    fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad, rect=rect)
 
 
 @plot
+def collision_profile():
+    plt.figure(figsize=(columnwidth, aspect*columnwidth))
+
+    sigma_nn = 6.4
+    b = np.linspace(0, 5, 1000)
+
+    # black-disk proton
+    disk_radius = np.sqrt(sigma_nn/np.pi)
+    black_disk = np.heaviside(-(b - disk_radius), 1)
+    plt.plot(b, black_disk, color=offblack, label='black disk')
+
+    # Gaussian protons
+    for w in [.5, .7, .9]:
+        norm = 4*np.pi*w**2 
+
+        def fit_xsection(x, A=6):
+            c = A**2/4
+            rhs = sigma_nn/norm
+            return c - expi(-np.exp(x)) + expi(-np.exp(x-c)) - rhs
+
+        cross_sec_param = brentq(fit_xsection, -10, 20)
+        pcoll = 1 - np.exp(-np.exp(cross_sec_param - .25*b**2/w**2))
+        plt.plot(b, pcoll, label=r'$w={}$ [fm]'.format(w))
+
+    plt.xlim(0, 5)
+    plt.xlabel('$b$ [fm]')
+    plt.ylabel(r'$P_\mathrm{coll}(b)$')
+    plt.legend()
+
+    finish(pad=.2)
+
+#@plot
 def uncertainties(nbin=50):
     """
     Calculate <Ncoll>(Centrality) for each set of trento arguments
@@ -134,10 +151,9 @@ def uncertainties(nbin=50):
     fig, axes = plt.subplots(
         nrows=2, ncols=2,
         figsize=(textwidth, aspect*textwidth),
-        sharex=True
     )
 
-    plot_attrs = [('Npart', 2), ('Ncoll', 3)]
+    plot_attrs = [('npart', 2), ('ncoll', 3)]
     blue, red = [plt.cm.Blues(.6), plt.cm.Reds(.6)]
 
     # alice glauber model
@@ -160,8 +176,9 @@ def uncertainties(nbin=50):
 
     # plot trento npart and ncoll
     for (attr, index), col in zip(plot_attrs, axes.T):
-        ylabels = [attr, r'{}/$\langle$ {} $\rangle$'.format(attr, attr)]
         samples = np.array(post_samples[attr])
+        label_fmt = r'{}/$\langle$ {} $\rangle$'
+        ylabels = [attr.title(), label_fmt.format(attr.title(), attr.title())]
 
         alice_glb = alice_glauber[attr]
 
@@ -184,20 +201,20 @@ def uncertainties(nbin=50):
                     band = ax.fill_between(x, y - dy, y + dy,
                             color=color, alpha=.2, lw=0, zorder=0, label='95% CI')
                     handles.append((line, band))
+                    ax.set_xticklabels([])
 
                 else:
                     y0 = np.interp(x, trento['x'], trento['y'])
                     ax.plot(x, y/y0, color=color, zorder=1)
                     ax.fill_between(x, (y - dy)/y0, (y + dy)/y0,
                         color=color, alpha=.2, lw=0, zorder=0, label='95% CI')
-
                     ax.set_xlabel('Centrality')
 
             ax.set_ylabel(ylabel)
 
-    ax_top_right = axes[0][1]
-    ax_top_right.legend(handles, ['Trento', 'ALICE GLb.'])
-    set_tight(pad=.5)
+    axes[0][1].legend(handles, ['Trento posterior', 'ALICE Glauber'])
+
+    finish(pad=0.5)
 
 
 def main():
@@ -218,6 +235,7 @@ def main():
     else:
         for f in plot_functions.values():
             f()
+
 
 if __name__ == "__main__":
     main()
