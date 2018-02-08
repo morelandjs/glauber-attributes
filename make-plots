@@ -142,7 +142,8 @@ def collision_profile():
 
     finish(pad=.2)
 
-#@plot
+
+@plot
 def uncertainties(nbin=50):
     """
     Calculate <Ncoll>(Centrality) for each set of trento arguments

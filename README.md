@@ -1,3 +1,9 @@
 # Revisiting Glauber model uncertainties
 
-Revisit uncertainties in the Glauber model attributes Npart and Ncoll.
+Compares Npart and Ncoll in Trento to the ALICE Glauber model.
+
+## Usage
+```
+./generate-events
+./make-plots
+```
