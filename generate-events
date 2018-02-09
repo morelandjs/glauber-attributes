@@ -114,7 +114,7 @@ def main():
             'chain.hdf'
         )
 
-    size = 10**2
+    size = 500
     ncpu = multiprocessing.cpu_count()
 
     prior = (trento_prior(size=size), 'prior')

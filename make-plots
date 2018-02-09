@@ -148,7 +148,7 @@ def collision_profile():
 
 
 @plot
-def uncertainties(nbin=20):
+def uncertainties(nbin=100):
     """
     Calculate <Ncoll>(Centrality) for each set of trento arguments
 
@@ -165,11 +165,12 @@ def uncertainties(nbin=20):
     for attr, _ in plot_attrs:
         fname = 'alice/{}.txt'.format(attr)
         x, y, yerr = np.loadtxt(fname, usecols=(0, 3, 4)).T
-        alice_glauber[attr] = dict(x=x, y=y, yerr=yerr)
+        alice_glauber[attr] = dict(x=x, y=y, ymin=y-2*yerr, ymax=y+2*yerr)
 
     # trento prior and posterior samples
     trento_samples = dict(prior=defaultdict(list), post=defaultdict(list))
     for dist in trento_samples.keys():
+
         for fname in glob.glob('{}/*.dat'.format(dist)):
             events = np.loadtxt(fname)
             sorted_events = events[events[:, 4].argsort()][::-1]
@@ -181,21 +182,19 @@ def uncertainties(nbin=20):
 
     # plot trento npart and ncoll
     for (attr, index), col in zip(plot_attrs, axes.T):
-
         alice_glb = alice_glauber[attr]
 
         trento = {}
         for dist in trento_samples.keys():
             samples = np.array(trento_samples[dist][attr])
-            trento[dist] = dict(
-                x=np.linspace(0, 100, nbin),
-                y=samples.mean(axis=0),
-                yerr=samples.std(axis=0),
-            )
+            x=np.linspace(0, 100, nbin)
+            y = samples.mean(axis=0)
+            perc = {'prior': (0.1, 99.9), 'post': (2.5, 97.5)}[dist]
+            ymin, ymax = np.percentile(samples, perc, axis=0)
+            trento[dist] = dict(x=x, y=y, ymin=ymin, ymax=ymax)
 
         label_fmt = r'{}/$\langle$ {} $\rangle$'
         ylabels = [attr.title(), label_fmt.format(attr.title(), attr.title())]
-
         handles = []
 
         for ax, ylabel in zip(col, ylabels):
@@ -205,26 +204,32 @@ def uncertainties(nbin=20):
             alice = (alice_glb, red)
 
             for (model, color) in [trento_prior, trento_post, alice]:
-
-                x, y, dy = [model[k] for k in ('x', 'y', 'yerr')] 
+                x, y, ymin, ymax = [model[k] for k in ('x', 'y', 'ymin', 'ymax')] 
 
                 if ax.is_first_row():
                     line, = ax.plot(x, y, color=color, zorder=1)
-                    band = ax.fill_between(x, y - dy, y + dy,
-                            color=color, alpha=.2, lw=0, zorder=0, label='95% CI')
+                    band = ax.fill_between(
+                        x, ymin, ymax, color=color, alpha=.2, lw=0, zorder=0
+                    )
                     handles.append((line, band))
                     ax.set_xticklabels([])
 
                 else:
                     y0 = np.interp(x, trento['prior']['x'], trento['prior']['y'])
                     ax.plot(x, y/y0, color=color, zorder=1)
-                    ax.fill_between(x, (y - dy)/y0, (y + dy)/y0,
-                        color=color, alpha=.2, lw=0, zorder=0, label='95% CI')
+                    ax.fill_between(
+                        x, ymin/y0, ymax/y0, color=color, alpha=.2, lw=0, zorder=0
+                    )
                     ax.set_xlabel('Centrality')
 
             ax.set_ylabel(ylabel)
 
-    labels = ['Trento prior', 'Trento posterior', 'ALICE Glauber']
+    TRENTO_LABEL = r'T\raisebox{-.5ex}{R}ENTo'
+    labels = [
+        r'TRENTO Bayesian prior',
+        r'TRENTO Bayesian 95% CR',
+        r'ALICE Glauber $\pm2\sigma$'
+    ]
     axes[0][1].legend(handles, labels)
 
     finish(pad=0.5)
