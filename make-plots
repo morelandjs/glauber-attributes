@@ -11,6 +11,7 @@ from matplotlib import ticker
 import numpy as np
 from scipy.optimize import brentq
 from scipy.special import expi
+from scipy.interpolate import interp1d
 
 
 aspect = 1/1.618
@@ -215,7 +216,13 @@ def uncertainties(nbin=100):
                     ax.set_xticklabels([])
 
                 else:
-                    y0 = np.interp(x, trento['prior']['x'], trento['prior']['y'])
+                    y0 = interp1d(
+                        trento['prior']['x'],
+                        trento['prior']['y'],
+                        kind='cubic',
+                        fill_value='extrapolate'
+                    )(x)
+
                     ax.plot(x, y/y0, color=color, zorder=1)
                     ax.fill_between(
                         x, ymin/y0, ymax/y0, color=color, alpha=.2, lw=0, zorder=0
