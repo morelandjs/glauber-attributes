@@ -89,7 +89,7 @@ def trento(args, name):
     with open(fname, 'w') as f:
         run_cmd(
             'trento', 'Pb Pb',
-            '--number-events {}'.format(10**4),
+            '--number-events {}'.format(10**5),
             '--reduced-thickness {}'.format(args_dict['p']),
             '--fluctuation {}'.format(args_dict['k']),
             '--nucleon-width {}'.format(args_dict['w']),
@@ -107,7 +107,7 @@ def main():
 
     s3 = boto3.resource("s3")
     bucket = s3.Bucket("dukeqcd")
-    
+
     if not Path("chain.hdf").exists():
         bucket.download_file(
             'glauber-attributes/chain.hdf',
