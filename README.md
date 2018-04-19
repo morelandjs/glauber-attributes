@@ -9,7 +9,7 @@ Compares Npart and Ncoll in Trento to the ALICE Glauber model.
 ```
 
 ### Comparing Trento and the ALICE Glauber model
-![alt text](https://github.com/morelandjs/glauber-attributes/plots/uncertainties.png)
+![alt text](https://github.com/morelandjs/glauber-attributes/blob/master/plots/uncertainties.png)
 
 Nucleon participants and binary nucleon-nucleon collisions are used ubiquitiously in heavy-ion physics.
 Many experimental measurements rely on precise theoretical knowledge of these
