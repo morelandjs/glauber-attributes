@@ -86,8 +86,8 @@ def plot(f):
         if not fig.get_tight_layout():
             finish(fig)
 
-        plotfile = plotdir / '{}.pdf'.format(f.__name__)
-        fig.savefig(str(plotfile))
+        plotfile = plotdir / '{}.png'.format(f.__name__)
+        fig.savefig(str(plotfile), dpi=300)
         logging.info('wrote %s', plotfile)
         plt.close(fig)
 
@@ -117,7 +117,8 @@ def finish(despine=True, remove_ticks=False, pad=0.1, h_pad=None, w_pad=None,
 
 @plot
 def collision_profile():
-    plt.figure(figsize=(columnwidth, aspect*columnwidth))
+    width = .7*textwidth
+    plt.figure(figsize=(width, aspect*width))
 
     sigma_nn = 6.4
     b = np.linspace(0, 5, 1000)
